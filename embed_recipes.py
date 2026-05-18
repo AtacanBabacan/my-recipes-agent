@@ -10,7 +10,20 @@ DB_PATH = "./data/recipes.duckdb"
 OUT_EMB = "./data/embeddings.npy"
 OUT_IDS = "./data/embedding_ids.json"
 
-BATCH_SIZE = 64  # safe default; adjust if you want
+def est_tokens(s: str) -> int:
+    return max(1, len(s) // 4)
+
+def make_batches(texts: list[str], token_budget: int = 2500):
+    batch, budget_used = [], 0
+    for t in texts:
+        tk = est_tokens(t)
+        if batch and budget_used + tk > token_budget:
+            yield batch
+            batch, budget_used = [], 0
+        batch.append(t)
+        budget_used += tk
+    if batch:
+        yield batch
 
 def l2_normalize(mat: np.ndarray) -> np.ndarray:
     norms = np.linalg.norm(mat, axis=1, keepdims=True) + 1e-12
@@ -29,11 +42,9 @@ def main():
     texts = [r[1] or "" for r in rows]
 
     all_embs: list[list[float]] = []
-    for i in range(0, len(texts), BATCH_SIZE):
-        batch = texts[i:i+BATCH_SIZE]
+    for batch in make_batches(texts, token_budget=2500):
         embs = embed_texts(batch)
         all_embs.extend(embs)
-        print(f"Embedded {min(i+BATCH_SIZE, len(texts))}/{len(texts)}")
 
     mat = np.array(all_embs, dtype=np.float32)
     mat = l2_normalize(mat)
