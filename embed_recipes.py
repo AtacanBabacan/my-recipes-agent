@@ -1,10 +1,10 @@
+from dotenv import load_dotenv
+load_dotenv()
 import os, json
 import duckdb
 import numpy as np
-from dotenv import load_dotenv
 from clients.voyage_client import embed_texts
 
-load_dotenv()
 
 DB_PATH = "./data/recipes.duckdb"
 OUT_EMB = "./data/embeddings.npy"
